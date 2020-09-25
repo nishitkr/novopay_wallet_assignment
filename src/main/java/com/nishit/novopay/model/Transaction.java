@@ -9,6 +9,8 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 import com.nishit.novopay.enums.TransactionStatus;
@@ -20,7 +22,7 @@ public class Transaction {
 	
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Column(name = "USERUUID", nullable = false, unique = true, updatable = false)
+	@Column(name = "TRANSACTIONID", nullable = false, unique = true, updatable = false)
 	private UUID transactionid;
 	
 	@Column(name = "AMOUNT", precision = 20, scale = 2, nullable = false, updatable = false)
@@ -52,6 +54,10 @@ public class Transaction {
 	
 	@Column(name = "BALANCEAFTER", precision = 20, scale = 2, nullable = false, updatable = false)
 	private BigDecimal balanceAfter;
+	
+	@ManyToOne
+	@JoinColumn(name = "WALLETID", nullable = false)
+	private Wallet wallet;
 
 	public UUID getTransactionid() {
 		return transactionid;
@@ -95,6 +101,10 @@ public class Transaction {
 
 	public BigDecimal getBalanceAfter() {
 		return balanceAfter;
+	}
+
+	public Wallet getWallet() {
+		return wallet;
 	}
 
 	public Transaction setTransactionid(UUID transactionid) {
@@ -149,6 +159,11 @@ public class Transaction {
 
 	public Transaction setBalanceAfter(BigDecimal balanceAfter) {
 		this.balanceAfter = balanceAfter;
+		return this;
+	}
+
+	public Transaction setWallet(Wallet wallet) {
+		this.wallet = wallet;
 		return this;
 	}
 	

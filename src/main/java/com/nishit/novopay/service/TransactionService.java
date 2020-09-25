@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nishit.novopay.enums.TransactionStatus;
 import com.nishit.novopay.enums.TransactionType;
+import com.nishit.novopay.exception.InsufficientFundsException;
 import com.nishit.novopay.exception.UserDetailNotFoundException;
 import com.nishit.novopay.exception.WalletInvalidException;
 import com.nishit.novopay.model.Transaction;
@@ -19,6 +20,7 @@ import com.nishit.novopay.repository.UserRepository;
 import com.nishit.novopay.repository.WalletRepository;
 
 @Service
+@Transactional
 public class TransactionService {
 	
 	private static final BigDecimal charge = new BigDecimal(0.2);
@@ -35,7 +37,7 @@ public class TransactionService {
 		this.walletRepository = walletRepository;
 	}
 	
-	
+//	@Transactional
 	public boolean addMoneyToUserWallet(String username, BigDecimal amount) throws UserDetailNotFoundException, WalletInvalidException {
 		User user = userRepository.findByUsername(username).orElse(null);
 		
@@ -46,8 +48,32 @@ public class TransactionService {
 		return addMoneyToWallet(user.getWallet(), amount);
 	}
 	
-	@Transactional
-	public boolean addMoneyToWallet(Wallet wallet, BigDecimal amount) throws WalletInvalidException {
+//	@Transactional
+	public boolean transferMoneyToUserWallet(String senderUserName, String recipientUsername, BigDecimal amount) throws UserDetailNotFoundException, WalletInvalidException, InsufficientFundsException {
+		User sender = userRepository.findByUsername(senderUserName).orElse(null);
+		User recipient = userRepository.findByUsername(recipientUsername).orElse(null);
+		
+		if(sender == null || recipient == null) {
+			throw new UserDetailNotFoundException("User deatils not found.");
+		}
+		
+		return transferMoneyToWallet(sender.getWallet(), recipient.getWallet(), amount);
+	}
+	
+	private boolean transferMoneyToWallet(Wallet senderWallet, Wallet recipientWallet, BigDecimal amount) throws WalletInvalidException, InsufficientFundsException {
+		if(senderWallet == null || recipientWallet == null) {
+			throw new WalletInvalidException("Issue with user's wallet");
+		}
+		
+		deductMoneyFromWallet(senderWallet, amount);
+		
+		addMoneyToWallet(recipientWallet, amount);
+		
+		return true;
+	}
+	
+	
+	private boolean addMoneyToWallet(Wallet wallet, BigDecimal amount) throws WalletInvalidException {
 		if(wallet == null) {
 			throw new WalletInvalidException("Issue with user's wallet");
 		}
@@ -62,7 +88,8 @@ public class TransactionService {
 										.setCommision(new BigDecimal(0.0))
 										.setFinalAmountAfterCharges(amount)
 										.setBalanceBefore(wallet.getBalance())
-										.setBalanceAfter(finalBalance);
+										.setBalanceAfter(finalBalance)
+										.setWallet(wallet);
 		
 		transactionRepository.save(transaction);
 		
@@ -73,11 +100,50 @@ public class TransactionService {
 		return true;								
 	}
 	
+	
+	private boolean deductMoneyFromWallet(Wallet wallet, BigDecimal amount) throws WalletInvalidException, InsufficientFundsException {
+		if(wallet == null) {
+			throw new WalletInvalidException("Issue with user's wallet");
+		}
+		
+		BigDecimal charge = calculateCharge(amount);
+		BigDecimal commission = calculateCommission(amount);
+		
+		BigDecimal finalAmountAfterCharges = amount.add(charge).add(commission);
+		
+		BigDecimal finalBalance = wallet.getBalance().subtract(finalAmountAfterCharges);
+		
+		if(finalBalance.compareTo(BigDecimal.ZERO) < 0) {
+			throw new InsufficientFundsException("Transaction declined due to insufficient funds");
+		}
+		
+		Transaction transaction = new Transaction().setAmount(amount)
+										.setType(TransactionType.DEBIT)
+										.setStatus(TransactionStatus.SUCCESSFUL)
+										.setOccuredAt(LocalDateTime.now())
+										.setCharge(charge)
+										.setCommision(commission)
+										.setFinalAmountAfterCharges(finalAmountAfterCharges)
+										.setBalanceBefore(wallet.getBalance())
+										.setBalanceAfter(finalBalance)
+										.setWallet(wallet);
+		
+		transactionRepository.save(transaction);
+		
+		wallet.setBalance(finalBalance);
+		
+		walletRepository.save(wallet);
+		
+		return true;								
+	}
+	
+	
+	
 	private BigDecimal calculateCharge(BigDecimal amount) {
-		return amount.multiply(charge);
+		return amount.multiply(charge).divide(new BigDecimal(100.00));
 	}
 	
 	private BigDecimal calculateCommission(BigDecimal amount) {
-		return amount.multiply(commission);
+		return amount.multiply(commission).divide(new BigDecimal(100.00));
 	}
 }
