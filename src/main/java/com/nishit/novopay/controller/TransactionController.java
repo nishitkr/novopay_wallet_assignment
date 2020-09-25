@@ -1,5 +1,7 @@
 package com.nishit.novopay.controller;
 
+import java.util.UUID;
+
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nishit.novopay.exception.InsufficientFundsException;
+import com.nishit.novopay.exception.TransactionIdNotFoundException;
 import com.nishit.novopay.exception.UserDetailNotFoundException;
 import com.nishit.novopay.exception.WalletInvalidException;
 import com.nishit.novopay.payload.AddMoneyPayload;
+import com.nishit.novopay.payload.TransactionStatusPayload;
 import com.nishit.novopay.payload.TransferMoneyPayload;
 import com.nishit.novopay.service.TransactionService;
 import com.nishit.novopay.service.UserCredentialService;
@@ -67,6 +71,23 @@ public class TransactionController {
 			}
 		} else {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username or password invalid.");
+		}
+	}
+	
+	@RequestMapping(value = "/statusinquiry", method = RequestMethod.GET)
+	public TransactionStatusPayload statusInquiry(@RequestParam("id") String id) {
+		UUID transactionid;
+		try {
+			transactionid = UUID.fromString(id);
+		}
+		catch(IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Transaction ID.");
+		}
+		
+		try {
+			return transactionService.getTransactionStatus(transactionid);
+		} catch (TransactionIdNotFoundException e) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transaction not found", e);
 		}
 	}
 

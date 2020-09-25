@@ -2,6 +2,7 @@ package com.nishit.novopay.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,11 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nishit.novopay.enums.TransactionStatus;
 import com.nishit.novopay.enums.TransactionType;
 import com.nishit.novopay.exception.InsufficientFundsException;
+import com.nishit.novopay.exception.TransactionIdNotFoundException;
 import com.nishit.novopay.exception.UserDetailNotFoundException;
 import com.nishit.novopay.exception.WalletInvalidException;
 import com.nishit.novopay.model.Transaction;
 import com.nishit.novopay.model.User;
 import com.nishit.novopay.model.Wallet;
+import com.nishit.novopay.payload.TransactionStatusPayload;
 import com.nishit.novopay.repository.TransactionRepository;
 import com.nishit.novopay.repository.UserRepository;
 import com.nishit.novopay.repository.WalletRepository;
@@ -37,7 +40,6 @@ public class TransactionService {
 		this.walletRepository = walletRepository;
 	}
 	
-//	@Transactional
 	public boolean addMoneyToUserWallet(String username, BigDecimal amount) throws UserDetailNotFoundException, WalletInvalidException {
 		User user = userRepository.findByUsername(username).orElse(null);
 		
@@ -48,7 +50,6 @@ public class TransactionService {
 		return addMoneyToWallet(user.getWallet(), amount);
 	}
 	
-//	@Transactional
 	public boolean transferMoneyToUserWallet(String senderUserName, String recipientUsername, BigDecimal amount) throws UserDetailNotFoundException, WalletInvalidException, InsufficientFundsException {
 		User sender = userRepository.findByUsername(senderUserName).orElse(null);
 		User recipient = userRepository.findByUsername(recipientUsername).orElse(null);
@@ -59,6 +60,17 @@ public class TransactionService {
 		
 		return transferMoneyToWallet(sender.getWallet(), recipient.getWallet(), amount);
 	}
+	
+	public TransactionStatusPayload getTransactionStatus(UUID id) throws TransactionIdNotFoundException {
+		Transaction transaction = transactionRepository.findById(id).orElse(null);
+		if(transaction == null) {
+			throw new TransactionIdNotFoundException("Invalid Transaction ID.");
+		}
+		
+		return new TransactionStatusPayload(transaction.getTransactionid(), transaction.getStatus());
+	}
+	
+	
 	
 	private boolean transferMoneyToWallet(Wallet senderWallet, Wallet recipientWallet, BigDecimal amount) throws WalletInvalidException, InsufficientFundsException {
 		if(senderWallet == null || recipientWallet == null) {
