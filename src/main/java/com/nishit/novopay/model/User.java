@@ -20,6 +20,9 @@ public class User {
 	@Column(name = "USERUUID", nullable = false, unique = true, updatable = false)
 	private UUID useruuid;
 	
+	@Column(name = "USERNAME", nullable = false, unique = true, updatable = false, length = 60)
+	private String username;
+	
 	@Column(name = "NAME", length = 100, nullable = false, updatable = true)
 	private String name;
 	
@@ -33,10 +36,14 @@ public class User {
 	
 	@Column(name = "ADDRESS", length = 100, nullable = true, updatable = true)
 	private String address;
-
+	
 
 	public UUID getUseruuid() {
 		return useruuid;
+	}
+
+	public String getUsername() {
+		return username;
 	}
 
 	public String getName() {
@@ -55,8 +62,14 @@ public class User {
 		return address;
 	}
 
+
 	public User setUseruuid(UUID useruuid) {
 		this.useruuid = useruuid;
+		return this;
+	}
+
+	public User setUsername(String username) {
+		this.username = username;
 		return this;
 	}
 
@@ -79,7 +92,5 @@ public class User {
 		this.address = address;
 		return this;
 	}
-	
-	
-	
+
 }
