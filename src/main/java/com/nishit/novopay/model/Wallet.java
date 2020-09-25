@@ -17,17 +17,23 @@ public class Wallet {
 	
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Column(name = "walletid", nullable = false, unique = true, updatable = false)
+	@Column(name = "WALLETID", nullable = false, unique = true, updatable = false)
 	private UUID walletid;
 	
-	@Column(name = "balance", precision = 20, scale = 2)
+	@Column(name = "BALANCE", precision = 20, scale = 2)
 	private BigDecimal balance;
 	
 	@OneToOne(mappedBy = "wallet")
 	private User user;
 
-	public Wallet(BigDecimal balance) {
+	
+	
+	
+	public Wallet() {
 		super();
+	}
+
+	public Wallet(BigDecimal balance) {
 		this.balance = balance;
 	}
 

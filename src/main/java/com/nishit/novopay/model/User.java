@@ -41,7 +41,7 @@ public class User {
 	private String address;
 	
 	@OneToOne(cascade = CascadeType.ALL)
-	@JoinColumn(name = "walletid", referencedColumnName = "walletid")
+	@JoinColumn(name = "WALLETID", referencedColumnName = "walletid")
 	private Wallet wallet;
 	
 
