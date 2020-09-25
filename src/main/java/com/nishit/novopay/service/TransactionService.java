@@ -47,7 +47,7 @@ public class TransactionService {
 			throw new UserDetailNotFoundException("User deatils not found.");
 		}
 		
-		return addMoneyToWallet(user.getWallet(), amount);
+		return addMoneyToWallet(user.getWallet(), null, amount);
 	}
 	
 	public boolean transferMoneyToUserWallet(String senderUserName, String recipientUsername, BigDecimal amount) throws UserDetailNotFoundException, WalletInvalidException, InsufficientFundsException {
@@ -77,15 +77,15 @@ public class TransactionService {
 			throw new WalletInvalidException("Issue with user's wallet");
 		}
 		
-		deductMoneyFromWallet(senderWallet, amount);
+		deductMoneyFromWallet(senderWallet, recipientWallet, amount);
 		
-		addMoneyToWallet(recipientWallet, amount);
+		addMoneyToWallet(recipientWallet, senderWallet, amount);
 		
 		return true;
 	}
 	
 	
-	private boolean addMoneyToWallet(Wallet wallet, BigDecimal amount) throws WalletInvalidException {
+	private boolean addMoneyToWallet(Wallet wallet, Wallet secondPartyWallet, BigDecimal amount) throws WalletInvalidException {
 		if(wallet == null) {
 			throw new WalletInvalidException("Issue with user's wallet");
 		}
@@ -102,6 +102,9 @@ public class TransactionService {
 										.setBalanceBefore(wallet.getBalance())
 										.setBalanceAfter(finalBalance)
 										.setWallet(wallet);
+		if(secondPartyWallet != null) {
+			transaction.setSecondPartyWalletID(secondPartyWallet.getWalletid());
+		}
 		
 		transactionRepository.save(transaction);
 		
@@ -113,8 +116,8 @@ public class TransactionService {
 	}
 	
 	
-	private boolean deductMoneyFromWallet(Wallet wallet, BigDecimal amount) throws WalletInvalidException, InsufficientFundsException {
-		if(wallet == null) {
+	private boolean deductMoneyFromWallet(Wallet wallet, Wallet secondPartyWallet, BigDecimal amount) throws WalletInvalidException, InsufficientFundsException {
+		if(wallet == null || secondPartyWallet == null) {
 			throw new WalletInvalidException("Issue with user's wallet");
 		}
 		
@@ -138,7 +141,8 @@ public class TransactionService {
 										.setFinalAmountAfterCharges(finalAmountAfterCharges)
 										.setBalanceBefore(wallet.getBalance())
 										.setBalanceAfter(finalBalance)
-										.setWallet(wallet);
+										.setWallet(wallet)
+										.setSecondPartyWalletID(secondPartyWallet.getWalletid());
 		
 		transactionRepository.save(transaction);
 		

@@ -61,6 +61,9 @@ public class TransactionController {
 			@Valid @RequestBody TransferMoneyPayload transferMoneyPayload) {
 		if (userCredentialService.isValidCredential(username, password)) {
 			try {
+				if(username.equals(transferMoneyPayload.getRecipientUsername())) {
+					throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED, "Sender and recipient can't be same");
+				}
 				transactionService.transferMoneyToUserWallet(username, transferMoneyPayload.getRecipientUsername(), transferMoneyPayload.getAmount());
 			} catch (UserDetailNotFoundException e) {
 				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found", e);
