@@ -2,11 +2,14 @@ package com.nishit.novopay.model;
 
 import java.util.UUID;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Pattern;
@@ -37,6 +40,10 @@ public class User {
 	@Column(name = "ADDRESS", length = 100, nullable = true, updatable = true)
 	private String address;
 	
+	@OneToOne(cascade = CascadeType.ALL)
+	@JoinColumn(name = "walletid", referencedColumnName = "walletid")
+	private Wallet wallet;
+	
 
 	public UUID getUseruuid() {
 		return useruuid;
@@ -60,6 +67,10 @@ public class User {
 
 	public String getAddress() {
 		return address;
+	}
+	
+	public Wallet getWallet() {
+		return wallet;
 	}
 
 
@@ -90,6 +101,11 @@ public class User {
 
 	public User setAddress(String address) {
 		this.address = address;
+		return this;
+	}
+	
+	public User setWallet(Wallet wallet) {
+		this.wallet = wallet;
 		return this;
 	}
 
