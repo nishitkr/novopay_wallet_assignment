@@ -14,7 +14,7 @@ User Wallet system where a user can come and register for a wallet. User will be
 
 Note: Both charge and commission can be applicable to either DEBIT or CREDIT party based on the input.
 Charge - 0.2% of the Transaction Amount
-Commission - 0.05% of the Transaction Amount
+Commission - 0.05% of the Transaction Amount     
 
 ### Limitations
 1. For login, username and password need to be sent as request url parameters
