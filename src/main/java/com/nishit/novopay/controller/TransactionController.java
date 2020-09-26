@@ -1,8 +1,10 @@
 package com.nishit.novopay.controller;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Digits;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,7 @@ import com.nishit.novopay.exception.TransactionIdNotFoundException;
 import com.nishit.novopay.exception.UserDetailNotFoundException;
 import com.nishit.novopay.exception.WalletInvalidException;
 import com.nishit.novopay.payload.AddMoneyPayload;
+import com.nishit.novopay.payload.TransactionChargesPayload;
 import com.nishit.novopay.payload.TransactionStatusPayload;
 import com.nishit.novopay.payload.TransferMoneyPayload;
 import com.nishit.novopay.service.TransactionService;
@@ -118,6 +121,11 @@ public class TransactionController {
 		} catch (TransactionIdNotFoundException e) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transaction not found", e);
 		}
+	}
+	
+	@RequestMapping(value = "/calccharges", method = RequestMethod.GET)
+	public TransactionChargesPayload computeCharges(@RequestParam("amount") @Digits(integer =  20, fraction = 2) BigDecimal amount)  {
+		return transactionService.calculateTransactionCharges(amount);
 	}
 
 }
