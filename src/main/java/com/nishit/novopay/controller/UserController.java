@@ -15,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.nishit.novopay.exception.UserDetailNotFoundException;
 import com.nishit.novopay.exception.WalletInvalidException;
-import com.nishit.novopay.model.Transaction;
 import com.nishit.novopay.payload.PassbookEntryPayload;
 import com.nishit.novopay.payload.UserPayload;
 import com.nishit.novopay.service.UserCredentialService;

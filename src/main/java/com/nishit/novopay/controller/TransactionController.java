@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.nishit.novopay.exception.InsufficientFundsException;
+import com.nishit.novopay.exception.ReversalNotPossible;
 import com.nishit.novopay.exception.TransactionIdNotFoundException;
 import com.nishit.novopay.exception.UserDetailNotFoundException;
 import com.nishit.novopay.exception.WalletInvalidException;
@@ -74,6 +75,31 @@ public class TransactionController {
 			}
 		} else {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username or password invalid.");
+		}
+	}
+	
+	@RequestMapping(value = "/reverse", method = RequestMethod.POST)
+	public void reverseTransaction(@RequestParam("user") String username, @RequestParam("pwd") String password,
+			@RequestParam("id") String transactionid) {
+		
+		if (!userCredentialService.isAdmin(username, password)) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username or password invalid.");
+		}
+		
+		UUID transactionuuid;
+		try {
+			transactionuuid = UUID.fromString(transactionid);
+		}
+		catch(IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Transaction ID.");
+		}
+		
+		try {
+			transactionService.reverseTransaction(transactionuuid);
+		} catch (TransactionIdNotFoundException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Transaction ID.");
+		} catch (ReversalNotPossible e) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet missing for reversal.");
 		}
 	}
 	

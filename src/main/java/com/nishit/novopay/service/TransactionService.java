@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nishit.novopay.enums.TransactionStatus;
 import com.nishit.novopay.enums.TransactionType;
 import com.nishit.novopay.exception.InsufficientFundsException;
+import com.nishit.novopay.exception.ReversalNotPossible;
 import com.nishit.novopay.exception.TransactionIdNotFoundException;
 import com.nishit.novopay.exception.UserDetailNotFoundException;
 import com.nishit.novopay.exception.WalletInvalidException;
@@ -60,6 +61,184 @@ public class TransactionService {
 		
 		return transferMoneyToWallet(sender.getWallet(), recipient.getWallet(), amount);
 	}
+	
+	public boolean reverseTransaction(UUID transactionuuid) throws TransactionIdNotFoundException, ReversalNotPossible {
+		Transaction transaction = transactionRepository.findById(transactionuuid).orElse(null);
+		if(transaction == null) {
+			throw new TransactionIdNotFoundException("Invalid Transaction ID.");
+		}
+		
+		if(transaction.isReversed()) {
+			throw new UnsupportedOperationException("Transaction can't be reversed again.");
+		}
+		
+		if(transaction.getType() == TransactionType.DEBIT) {
+			revertDebitTransfer(transaction);
+		}
+		else if(transaction.getType() == TransactionType.CREDIT){
+			if(transaction.getSecondPartyWalletID() == null) {
+				revertAddMoney(transaction);
+			}
+			else {
+				revertCreditTransfer(transaction);
+			}
+ 		}
+		else {
+			throw new UnsupportedOperationException("Reversal transactions can't be reversed again.");
+		}
+		
+		transaction.setReversed(true);
+		
+		transactionRepository.save(transaction);
+		
+		return true;
+	}
+	
+	private boolean revertAddMoney(Transaction transaction) throws ReversalNotPossible {
+		Wallet wallet = transaction.getWallet();
+		if(wallet == null) {
+			throw new ReversalNotPossible("Wallet missing");
+		}
+		
+		BigDecimal amount = transaction.getAmount();
+		BigDecimal finalBalance = wallet.getBalance().subtract(amount);
+		
+		Transaction transactionRecipient = new Transaction().setAmount(amount)
+															.setType(TransactionType.REVERSAL)
+															.setStatus(TransactionStatus.SUCCESSFUL)
+															.setOccuredAt(LocalDateTime.now())
+															.setCharge(BigDecimal.ZERO)
+															.setCommision(BigDecimal.ZERO)
+															.setFinalAmountAfterCharges(amount)
+															.setBalanceBefore(wallet.getBalance())
+															.setBalanceAfter(finalBalance)
+															.setWallet(wallet);
+		
+		transactionRepository.save(transactionRecipient);
+		
+		wallet.setBalance(finalBalance);
+		
+		walletRepository.save(wallet);
+		
+		return true;
+	}
+	
+	private boolean revertDebitTransfer(Transaction transaction) throws ReversalNotPossible {
+		Wallet senderWallet = transaction.getWallet();
+		UUID recipientwalletid = transaction.getSecondPartyWalletID();
+		
+		BigDecimal deductFromRecipientWallet = transaction.getAmount();
+		BigDecimal addToSenderWallet = transaction.getFinalAmountAfterCharges();
+		
+		Wallet recipientWallet = walletRepository.findById(recipientwalletid).orElse(null);
+		
+		//If recipient has used the money, balance goes to negative
+		if(recipientWallet == null) {
+			throw new ReversalNotPossible("Wallet missing");
+		}
+			
+		
+		BigDecimal recipientFinalBalance = recipientWallet.getBalance().subtract(deductFromRecipientWallet);
+		
+		Transaction transactionRecipient = new Transaction().setAmount(deductFromRecipientWallet)
+														.setType(TransactionType.REVERSAL)
+														.setStatus(TransactionStatus.SUCCESSFUL)
+														.setOccuredAt(LocalDateTime.now())
+														.setCharge(BigDecimal.ZERO)
+														.setCommision(BigDecimal.ZERO)
+														.setFinalAmountAfterCharges(addToSenderWallet)
+														.setBalanceBefore(recipientWallet.getBalance())
+														.setBalanceAfter(recipientFinalBalance)
+														.setWallet(recipientWallet);
+		
+		
+		
+		
+		BigDecimal senderFinalBalance = senderWallet.getBalance().add(addToSenderWallet);
+		
+		Transaction transactionSender = new Transaction().setAmount(addToSenderWallet)
+														.setType(TransactionType.REVERSAL)
+														.setStatus(TransactionStatus.SUCCESSFUL)
+														.setOccuredAt(LocalDateTime.now())
+														.setCharge(BigDecimal.ZERO)
+														.setCommision(BigDecimal.ZERO)
+														.setFinalAmountAfterCharges(addToSenderWallet)
+														.setBalanceBefore(senderWallet.getBalance())
+														.setBalanceAfter(senderFinalBalance)
+														.setWallet(senderWallet);
+		
+		transactionRepository.save(transactionRecipient);
+		
+		transactionRepository.save(transactionSender);
+		
+		recipientWallet.setBalance(recipientFinalBalance);
+		
+		senderWallet.setBalance(senderFinalBalance);
+		
+		walletRepository.save(recipientWallet);
+		
+		walletRepository.save(senderWallet);
+		
+		return true;
+		
+	}
+	
+	private boolean revertCreditTransfer(Transaction transaction) throws ReversalNotPossible {
+		Wallet recipientWallet = transaction.getWallet();
+		UUID senderwalletid = transaction.getSecondPartyWalletID();
+		
+		BigDecimal amount = transaction.getAmount();
+		BigDecimal deductFromRecipientWallet = amount;
+		BigDecimal addToSenderWallet = amount.add(calculateCharge(amount)).add(calculateCommission(amount));
+		
+		Wallet senderWallet = walletRepository.findById(senderwalletid).orElse(null);
+		
+		if(senderWallet == null) {
+			throw new ReversalNotPossible("Wallet missing");
+		}
+		
+		
+		BigDecimal recipientFinalBalance = recipientWallet.getBalance().subtract(deductFromRecipientWallet);
+		
+		Transaction transactionRecipient = new Transaction().setAmount(deductFromRecipientWallet)
+														.setType(TransactionType.REVERSAL)
+														.setStatus(TransactionStatus.SUCCESSFUL)
+														.setOccuredAt(LocalDateTime.now())
+														.setCharge(BigDecimal.ZERO)
+														.setCommision(BigDecimal.ZERO)
+														.setFinalAmountAfterCharges(amount)
+														.setBalanceBefore(recipientWallet.getBalance())
+														.setBalanceAfter(recipientFinalBalance)
+														.setWallet(recipientWallet);
+		
+		BigDecimal senderFinalBalance = senderWallet.getBalance().add(addToSenderWallet);
+		
+		Transaction transactionSender = new Transaction().setAmount(addToSenderWallet)
+														.setType(TransactionType.REVERSAL)
+														.setStatus(TransactionStatus.SUCCESSFUL)
+														.setOccuredAt(LocalDateTime.now())
+														.setCharge(BigDecimal.ZERO)
+														.setCommision(BigDecimal.ZERO)
+														.setFinalAmountAfterCharges(addToSenderWallet)
+														.setBalanceBefore(senderWallet.getBalance())
+														.setBalanceAfter(senderFinalBalance)
+														.setWallet(senderWallet);
+		
+		transactionRepository.save(transactionRecipient);
+		
+		transactionRepository.save(transactionSender);
+		
+		recipientWallet.setBalance(recipientFinalBalance);
+		
+		senderWallet.setBalance(senderFinalBalance);
+		
+		walletRepository.save(recipientWallet);
+		
+		walletRepository.save(senderWallet);
+		
+		return true;
+	}
+	
 	
 	public TransactionStatusPayload getTransactionStatus(UUID id) throws TransactionIdNotFoundException {
 		Transaction transaction = transactionRepository.findById(id).orElse(null);

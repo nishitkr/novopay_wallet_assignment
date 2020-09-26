@@ -55,6 +55,9 @@ public class Transaction {
 	@Column(name = "BALANCEAFTER", precision = 20, scale = 2, nullable = false, updatable = false)
 	private BigDecimal balanceAfter;
 	
+	@Column(name = "ISREVERSED")
+	private boolean isReversed;
+	
 	@ManyToOne
 	@JoinColumn(name = "WALLETID", nullable = false)
 	private Wallet wallet;
@@ -105,6 +108,10 @@ public class Transaction {
 
 	public Wallet getWallet() {
 		return wallet;
+	}
+
+	public boolean isReversed() {
+		return isReversed;
 	}
 
 	public Transaction setTransactionid(UUID transactionid) {
@@ -164,6 +171,11 @@ public class Transaction {
 
 	public Transaction setWallet(Wallet wallet) {
 		this.wallet = wallet;
+		return this;
+	}
+
+	public Transaction setReversed(boolean isReversed) {
+		this.isReversed = isReversed;
 		return this;
 	}
 	

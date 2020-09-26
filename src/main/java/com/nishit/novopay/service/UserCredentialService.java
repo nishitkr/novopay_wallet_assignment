@@ -23,4 +23,13 @@ public class UserCredentialService {
 			return false;
 		}
 	}
+	
+	public boolean isAdmin(String username, String password) {
+		if(username.equals("admin") && password.equals("admin")) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 }
