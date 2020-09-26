@@ -2,6 +2,7 @@ package com.nishit.novopay.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,8 @@ public class UserService {
 	
 	private List<PassbookEntryPayload> convertToPassbookEntries(List<Transaction> transactions) {
 		List<PassbookEntryPayload> passbookEntries = new ArrayList<PassbookEntryPayload>();
+		
+		Collections.sort(transactions, (t1, t2) -> t2.getOccuredAt().compareTo(t1.getOccuredAt()));
 		
 		for(Transaction transaction : transactions) {
 			
