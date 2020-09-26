@@ -49,12 +49,15 @@ Commission - 0.05% of the Transaction Amount
       "amount" : "\<amount\>" <br/>
     }
     
- 4. **Transaction Status Inquiry** <br/> 
+4. **Transaction Status Inquiry** <br/> 
     GET   http://localhost:8080/novopay/api/v1/transact/statusinquiry?id=<transaction_uuid\> <br/>
     
- 5. **View Passbook**  <br/>
+5. **View Passbook**  <br/>
     GET   http://localhost:8080/novopay/api/v1/user/passbook?user=<username\>&pwd=<password\> <br/>
     
- 6. **Reverse Transaction** <br/>
+6. **Reverse Transaction** <br/>
     **Note: This request can only be triggered by Admin** <br/>
     POST    http://localhost:8080/novopay/api/v1/transact/reverse?user=admin&pwd=admin&id=<transaction_uuid\> <br/>
+
+7. **Calculate Charge and Commisiion**  <br/>
+    GET     http://localhost:8080/novopay/api/v1/transact/calccharges?amount=<amount\>  <br/>
